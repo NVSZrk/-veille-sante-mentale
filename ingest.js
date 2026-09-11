@@ -50,6 +50,10 @@ async function ingestFeed(feed) {
     });
 
     if (added) console.log(`  + ajouté : ${title}`);
+
+    if (process.env.GEMINI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+      await sleep(4000);
+    }
   }
 }
 
@@ -65,6 +69,10 @@ async function run() {
   console.log('Ingestion terminée.');
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Régénère le résumé de tous les articles déjà en base, à partir du texte
 // déjà stocké (raw_excerpt). N'appelle pas les flux RSS, ne retélécharge rien.
 async function resummarizeAll() {
@@ -77,6 +85,11 @@ async function resummarizeAll() {
       count++;
     } catch (err) {
       console.error(`[erreur] résumé article #${a.id} :`, err.message);
+    }
+    // Pause entre chaque article pour éviter de dépasser le quota gratuit de
+    // Gemini (limite par minute) quand il y a beaucoup d'articles à traiter.
+    if (process.env.GEMINI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+      await sleep(4000);
     }
   }
   console.log(`${count} résumé(s) régénéré(s).`);
