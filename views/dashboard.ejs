@@ -106,17 +106,17 @@
 
     async function lancerResume(btn) {
       btn.disabled = true;
-      btn.textContent = 'Régénération en cours...';
+      btn.textContent = 'Lancement...';
       try {
         const res = await fetch('/api/resummarize', { method: 'POST' });
         const data = await res.json();
         if (data.ok) {
-          location.reload();
+          alert("Régénération lancée en arrière-plan. Ça peut prendre quelques minutes selon le nombre d'articles — actualisez la page dans un moment pour voir les nouveaux résumés.");
         } else {
-          alert('Erreur pendant la régénération : ' + data.error);
+          alert('Erreur : ' + data.error);
         }
       } catch (e) {
-        alert('Erreur réseau pendant la régénération.');
+        alert('Erreur réseau.');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Régénérer les résumés';
