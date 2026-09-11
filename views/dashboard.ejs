@@ -14,6 +14,7 @@
     </div>
     <div style="display:flex; gap:10px;">
       <button class="btn btn-ghost" onclick="lancerIngestion(this)">Actualiser maintenant</button>
+      <a href="/compte" class="btn btn-ghost" style="text-decoration:none;">Mon compte</a>
       <form method="POST" action="/logout">
         <button type="submit" class="btn btn-ghost">Déconnexion</button>
       </form>
@@ -21,6 +22,11 @@
   </div>
 
   <div class="container">
+    <div class="nav-links">
+      <a href="/" class="<%= !filters.saved ? 'active' : '' %>">Tous les articles</a>
+      <a href="/favoris" class="<%= filters.saved === '1' ? 'active' : '' %>">★ Mes favoris</a>
+    </div>
+
     <form class="filters" method="GET" action="/">
       <input type="text" name="q" placeholder="Rechercher un mot..." value="<%= filters.q || '' %>">
 
@@ -38,6 +44,11 @@
         <% }) %>
       </select>
 
+      <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer;">
+        <input type="checkbox" name="saved" value="1" <%= filters.saved === '1' ? 'checked' : '' %> onchange="this.form.submit()">
+        Favoris uniquement
+      </label>
+
       <button type="submit" class="btn btn-primary">Filtrer</button>
     </form>
 
@@ -48,16 +59,25 @@
       </div>
     <% } else { %>
       <% articles.forEach(a => { %>
-        <div class="card">
+        <div class="card" id="card-<%= a.id %>">
           <div class="meta">
             <span class="badge"><%= a.keyword %></span>
             <span class="badge terracotta"><%= a.category %></span>
             <span><%= a.source || 'Source inconnue' %></span>
             <span><%= a.published_at ? new Date(a.published_at).toLocaleDateString('fr-FR') : '' %></span>
           </div>
-          <h2><a href="<%= a.url %>" target="_blank" rel="noopener"><%= a.title %></a></h2>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+            <h2><a href="<%= a.url %>" target="_blank" rel="noopener"><%= a.title %></a></h2>
+            <button class="star-btn <%= a.saved ? 'active' : '' %>" onclick="toggleSave(<%= a.id %>, this)" title="Enregistrer cet article">★</button>
+          </div>
           <p class="summary"><%= a.summary || 'Résumé indisponible.' %></p>
           <a class="source-link" href="<%= a.url %>" target="_blank" rel="noopener">Lire l'article original →</a>
+
+          <div class="notes-block">
+            <label>Vos notes</label>
+            <textarea class="notes-input" data-id="<%= a.id %>" placeholder="Pourquoi cet article est intéressant, idées à en tirer..."><%= a.notes || '' %></textarea>
+            <div class="notes-status" id="notes-status-<%= a.id %>"></div>
+          </div>
         </div>
       <% }) %>
     <% } %>
@@ -82,6 +102,95 @@
         btn.textContent = 'Actualiser maintenant';
       }
     }
+
+    async function toggleSave(id, btn) {
+      try {
+        const res = await fetch(`/api/articles/${id}/save`, { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          btn.classList.toggle('active', data.saved);
+        }
+      } catch (e) {
+        alert("Erreur réseau, réessayez.");
+      }
+    }
+
+    let notesTimers = {};
+    document.querySelectorAll('.notes-input').forEach((el) => {
+      el.addEventListener('input', () => {
+        const id = el.dataset.id;
+        const statusEl = document.getElementById(`notes-status-${id}`);
+        statusEl.textContent = '...';
+        clearTimeout(notesTimers[id]);
+        notesTimers[id] = setTimeout(async () => {
+          try {
+            const res = await fetch(`/api/articles/${id}/notes`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ notes: el.value })
+            });
+            const data = await res.json();
+            statusEl.textContent = data.ok ? 'Enregistré ✓' : 'Erreur';
+            setTimeout(() => { statusEl.textContent = ''; }, 2000);
+          } catch (e) {
+            statusEl.textContent = 'Erreur réseau';
+          }
+        }, 700);
+      });
+    });
   </script>
+</body>
+</html>
+
+2. views/compte.ejs — nouveau fichier à créer (il n'existe probablement pas encore) :
+
+html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mon compte — Veille Santé mentale au travail</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1>Veille — Santé mentale au travail</h1>
+      <div class="sub">Connecté : <%= email %></div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="/" class="btn btn-ghost" style="text-decoration:none;">← Retour au tableau de bord</a>
+      <form method="POST" action="/logout">
+        <button type="submit" class="btn btn-ghost">Déconnexion</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="container" style="max-width: 460px;">
+    <div class="card">
+      <h2 style="margin-bottom: 16px;">Changer mon mot de passe</h2>
+
+      <% if (error) { %>
+        <div class="error-msg"><%= error %></div>
+      <% } %>
+      <% if (success) { %>
+        <div class="success-msg"><%= success %></div>
+      <% } %>
+
+      <form method="POST" action="/compte/mot-de-passe">
+        <label for="current_password">Mot de passe actuel</label>
+        <input type="password" id="current_password" name="current_password" required>
+
+        <label for="new_password">Nouveau mot de passe</label>
+        <input type="password" id="new_password" name="new_password" minlength="6" required>
+
+        <label for="confirm_password">Confirmer le nouveau mot de passe</label>
+        <input type="password" id="confirm_password" name="confirm_password" minlength="6" required>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:6px;">Mettre à jour</button>
+      </form>
+    </div>
+  </div>
 </body>
 </html>
