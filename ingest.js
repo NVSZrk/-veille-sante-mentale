@@ -65,6 +65,24 @@ async function run() {
   console.log('Ingestion terminée.');
 }
 
+// Régénère le résumé de tous les articles déjà en base, à partir du texte
+// déjà stocké (raw_excerpt). N'appelle pas les flux RSS, ne retélécharge rien.
+async function resummarizeAll() {
+  const articles = await store.getAllForResummarize();
+  let count = 0;
+  for (const a of articles) {
+    try {
+      const summary = await summarize(decodeEntities(a.title), a.raw_excerpt);
+      await store.updateSummary(a.id, decodeEntities(summary));
+      count++;
+    } catch (err) {
+      console.error(`[erreur] résumé article #${a.id} :`, err.message);
+    }
+  }
+  console.log(`${count} résumé(s) régénéré(s).`);
+  return count;
+}
+
 if (require.main === module) {
   const db = require('./db');
   db.init()
@@ -76,4 +94,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { run };
+module.exports = { run, resummarizeAll };
