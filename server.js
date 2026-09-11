@@ -5,7 +5,7 @@ const cron = require('node-cron');
 const db = require('./db');
 const store = require('./store');
 const usersStore = require('./users-store');
-const { run: runIngestion } = require('./ingest');
+const { run: runIngestion, resummarizeAll } = require('./ingest');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -108,6 +108,16 @@ app.post('/api/ingest', requireAuth, async (req, res) => {
   try {
     await runIngestion();
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// --- Régénérer les résumés de tous les articles déjà en base ---
+app.post('/api/resummarize', requireAuth, async (req, res) => {
+  try {
+    const count = await resummarizeAll();
+    res.json({ ok: true, count });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
