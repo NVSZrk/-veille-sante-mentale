@@ -9,8 +9,29 @@ const { run: runIngestion } = require('./ingest');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@holismose.fr';
-const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'changez-moi', 10);
+// --- Charge la liste des comptes autorisés depuis les variables d'environnement ---
+// Compte principal : ADMIN_EMAIL / ADMIN_PASSWORD
+// Comptes supplémentaires : USER_1_EMAIL / USER_1_PASSWORD, USER_2_EMAIL / USER_2_PASSWORD, ...
+function loadUsers() {
+  const users = [];
+
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@holismose.fr';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'changez-moi';
+  users.push({ email: adminEmail, passwordHash: bcrypt.hashSync(adminPassword, 10) });
+
+  let i = 1;
+  while (process.env[`USER_${i}_EMAIL`]) {
+    const email = process.env[`USER_${i}_EMAIL`];
+    const password = process.env[`USER_${i}_PASSWORD`] || 'changez-moi';
+    users.push({ email, passwordHash: bcrypt.hashSync(password, 10) });
+    i++;
+  }
+
+  return users;
+}
+
+const USERS = loadUsers();
+console.log(`${USERS.length} compte(s) configuré(s).`);
 
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
@@ -39,12 +60,14 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
-  const ok = email === ADMIN_EMAIL && bcrypt.compareSync(password || '', ADMIN_PASSWORD_HASH);
+  const user = USERS.find((u) => u.email.toLowerCase() === (email || '').toLowerCase());
+  const ok = user && bcrypt.compareSync(password || '', user.passwordHash);
+
   if (!ok) {
     return res.render('login', { error: 'Identifiants incorrects.' });
   }
   req.session.authenticated = true;
-  req.session.email = email;
+  req.session.email = user.email;
   res.redirect('/');
 });
 
