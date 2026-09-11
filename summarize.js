@@ -38,8 +38,8 @@ Rédige un résumé synthétique de 3 à 5 lignes maximum (environ 60 à 90 mots
 
 function naiveSummary(text) {
   const clean = text.replace(/\s+/g, ' ').trim();
-  const sentences = clean.split(/(?<=[.!?])\s+/).slice(0, 4);
-  return sentences.join(' ').slice(0, 600);
+  const sentences = clean.split(/(?<=[.!?])\s+/).slice(0, 6);
+  return sentences.join(' ').slice(0, 800);
 }
 
 async function summarize(title, text) {
