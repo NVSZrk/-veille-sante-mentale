@@ -1,104 +1,84 @@
-const fs = require('fs');
-const path = require('path');
-
-const DATA_DIR = path.join(__dirname, 'data');
-const FILE = path.join(DATA_DIR, 'articles.json');
-
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, '[]', 'utf-8');
-
-function loadArticles() {
-  try {
-    return JSON.parse(fs.readFileSync(FILE, 'utf-8'));
-  } catch (e) {
-    return [];
-  }
-}
-
-function saveArticles(articles) {
-  fs.writeFileSync(FILE, JSON.stringify(articles, null, 2), 'utf-8');
-}
-
-let nextId = 1;
-function initNextId() {
-  const arts = loadArticles();
-  nextId = arts.reduce((max, a) => Math.max(max, a.id || 0), 0) + 1;
-}
-initNextId();
+const { pool } = require('./db');
 
 // Insère un article s'il n'existe pas déjà (dédoublonnage par URL). Renvoie true si ajouté.
-function insertArticleIfNew(article) {
-  const articles = loadArticles();
-  if (articles.some((a) => a.url === article.url)) return false;
-
-  articles.push({
-    id: nextId++,
-    title: article.title,
-    url: article.url,
-    source: article.source || null,
-    keyword: article.keyword || null,
-    category: article.category || 'article',
-    published_at: article.published_at || null,
-    summary: article.summary || null,
-    raw_excerpt: article.raw_excerpt || '',
-    saved: false,
-    notes: '',
-    created_at: new Date().toISOString()
-  });
-
-  saveArticles(articles);
-  return true;
+async function insertArticleIfNew(article) {
+  const result = await pool.query(
+    `INSERT INTO articles (title, url, source, keyword, category, published_at, summary, raw_excerpt)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (url) DO NOTHING
+     RETURNING id`,
+    [
+      article.title,
+      article.url,
+      article.source || null,
+      article.keyword || null,
+      article.category || 'article',
+      article.published_at || null,
+      article.summary || null,
+      article.raw_excerpt || ''
+    ]
+  );
+  return result.rowCount > 0;
 }
 
 // Filtre + trie (plus récent en premier) + limite à 100 résultats
-function queryArticles({ keyword, category, q, savedOnly } = {}) {
-  let articles = loadArticles();
+async function queryArticles({ keyword, category, q, savedOnly } = {}) {
+  const conditions = [];
+  const params = [];
 
-  if (keyword) articles = articles.filter((a) => a.keyword === keyword);
-  if (category) articles = articles.filter((a) => a.category === category);
-  if (savedOnly) articles = articles.filter((a) => a.saved);
+  if (keyword) {
+    params.push(keyword);
+    conditions.push(`keyword = $${params.length}`);
+  }
+  if (category) {
+    params.push(category);
+    conditions.push(`category = $${params.length}`);
+  }
+  if (savedOnly) {
+    conditions.push('saved = TRUE');
+  }
   if (q) {
-    const needle = q.toLowerCase();
-    articles = articles.filter(
-      (a) =>
-        (a.title || '').toLowerCase().includes(needle) ||
-        (a.summary || '').toLowerCase().includes(needle) ||
-        (a.notes || '').toLowerCase().includes(needle)
-    );
+    params.push(`%${q.toLowerCase()}%`);
+    const idx = params.length;
+    conditions.push(`(LOWER(title) LIKE $${idx} OR LOWER(summary) LIKE $${idx} OR LOWER(notes) LIKE $${idx})`);
   }
 
-  articles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  return articles.slice(0, 100);
-}
-
-// Bascule l'état "enregistré" d'un article. Renvoie le nouvel état, ou null si introuvable.
-function toggleSaved(id) {
-  const articles = loadArticles();
-  const article = articles.find((a) => a.id === Number(id));
-  if (!article) return null;
-  article.saved = !article.saved;
-  saveArticles(articles);
-  return article.saved;
-}
-
-// Met à jour les notes personnelles d'un article. Renvoie true si trouvé.
-function updateNotes(id, notes) {
-  const articles = loadArticles();
-  const article = articles.find((a) => a.id === Number(id));
-  if (!article) return false;
-  article.notes = (notes || '').slice(0, 5000);
-  saveArticles(articles);
-  return true;
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const result = await pool.query(
+    `SELECT * FROM articles ${where} ORDER BY created_at DESC LIMIT 100`,
+    params
+  );
+  return result.rows;
 }
 
 function getDistinctKeywords() {
-  const set = new Set(loadArticles().map((a) => a.keyword).filter(Boolean));
-  return [...set].sort().map((keyword) => ({ keyword }));
+  return pool
+    .query('SELECT DISTINCT keyword FROM articles WHERE keyword IS NOT NULL ORDER BY keyword')
+    .then((r) => r.rows);
 }
 
 function getDistinctCategories() {
-  const set = new Set(loadArticles().map((a) => a.category).filter(Boolean));
-  return [...set].sort().map((category) => ({ category }));
+  return pool
+    .query('SELECT DISTINCT category FROM articles WHERE category IS NOT NULL ORDER BY category')
+    .then((r) => r.rows);
+}
+
+// Bascule l'état "enregistré" d'un article. Renvoie le nouvel état, ou null si introuvable.
+async function toggleSaved(id) {
+  const result = await pool.query(
+    'UPDATE articles SET saved = NOT saved WHERE id = $1 RETURNING saved',
+    [id]
+  );
+  return result.rowCount > 0 ? result.rows[0].saved : null;
+}
+
+// Met à jour les notes personnelles d'un article. Renvoie true si trouvé.
+async function updateNotes(id, notes) {
+  const result = await pool.query('UPDATE articles SET notes = $1 WHERE id = $2', [
+    (notes || '').slice(0, 5000),
+    id
+  ]);
+  return result.rowCount > 0;
 }
 
 module.exports = {

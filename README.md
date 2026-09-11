@@ -69,17 +69,28 @@ changer son propre mot de passe depuis "Mon compte" une fois connectée — la
 variable d'environnement ne sert alors plus qu'à créer le compte au tout
 premier démarrage.
 
+## Configurer la base de données (obligatoire)
+
+Cette version stocke tout dans une vraie base de données PostgreSQL, pour
+que les articles, favoris, notes et mots de passe survivent aux
+redémarrages/redéploiements. Il faut une base PostgreSQL accessible via une
+URL de connexion, dans la variable d'environnement `DATABASE_URL`.
+
+**Option recommandée : Neon (gratuit, sans carte bancaire)**
+
+1. Allez sur https://neon.tech → "Sign up" (avec GitHub par exemple).
+2. Créez un nouveau projet (nom libre).
+3. Sur le tableau de bord du projet, copiez la "Connection string" affichée
+   (commence par `postgresql://...`).
+4. Collez-la comme valeur de `DATABASE_URL` :
+   - en local, dans votre fichier `.env`
+   - sur Render, dans Environment → Add Environment Variable
+
+Au premier démarrage, la plateforme crée automatiquement les tables
+nécessaires — rien d'autre à faire manuellement.
+
 ## Limites à connaître
 
-- **Stockage des données** : articles, favoris, notes et mots de passe
-  changés sont stockés dans des fichiers JSON (`data/articles.json`,
-  `data/users.json`), pas dans une vraie base de données. Simple et sans
-  dépendance à compiler, mais **sur le plan gratuit de Render, ces fichiers
-  sont réinitialisés à chaque redéploiement** (données perdues, y compris
-  les mots de passe changés — ils reviennent à ceux définis dans les
-  variables d'environnement). Pour une persistance durable, il faudra migrer
-  vers une vraie base de données externe (PostgreSQL gratuit chez Neon ou
-  Supabase, par exemple) — demandez si besoin le moment venu.
 - **Extraction de contenu** : fonctionne bien sur des pages simples ; les
   sites de presse avec paywall ou fort JavaScript peuvent échouer. Dans ce
   cas l'article reste visible mais sans résumé riche.

@@ -1,5 +1,7 @@
+require('dotenv').config();
 // Insère quelques articles fictifs pour visualiser la plateforme
 // avant d'avoir configuré de vrais flux Google Alerts.
+const db = require('./db');
 const store = require('./store');
 
 const demo = [
@@ -35,8 +37,17 @@ const demo = [
   }
 ];
 
-let count = 0;
-demo.forEach((a) => {
-  if (store.insertArticleIfNew(a)) count++;
+async function run() {
+  await db.init();
+  let count = 0;
+  for (const a of demo) {
+    if (await store.insertArticleIfNew(a)) count++;
+  }
+  console.log(`${count} article(s) de démonstration inséré(s).`);
+  process.exit(0);
+}
+
+run().catch((err) => {
+  console.error('Erreur :', err.message);
+  process.exit(1);
 });
-console.log(`${count} article(s) de démonstration inséré(s).`);

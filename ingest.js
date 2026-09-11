@@ -38,7 +38,7 @@ async function ingestFeed(feed) {
 
     const summary = await summarize(title, text || item.contentSnippet || '');
 
-    const added = store.insertArticleIfNew({
+    const added = await store.insertArticleIfNew({
       title: title,
       url: item.link,
       source: decodeEntities(item.creator || parsed.title || null),
@@ -66,7 +66,14 @@ async function run() {
 }
 
 if (require.main === module) {
-  run().then(() => process.exit(0));
+  const db = require('./db');
+  db.init()
+    .then(() => run())
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('Erreur :', err.message);
+      process.exit(1);
+    });
 }
 
 module.exports = { run };
