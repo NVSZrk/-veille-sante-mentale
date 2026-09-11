@@ -8,7 +8,7 @@ const SUMMARY_INSTRUCTIONS = (title, text) => `Tu résumes un article de presse 
 Titre : ${title}
 Contenu : ${text.slice(0, 12000)}
 
-Rédige un résumé synthétique de 3 à 5 lignes maximum (environ 60 à 90 mots), en français, qui permet de comprendre l'essentiel de l'article sans avoir à le lire : le sujet, le point clé ou l'angle pris, et une donnée ou conclusion marquante si elle existe. Reste factuel et concis, pas de généralités vagues. Ne fais aucun commentaire, ne donne que le résumé, sans titre ni introduction.`;
+Rédige un résumé synthétique de 6 à 8 lignes (environ 130 à 180 mots), en français, qui permet de comprendre en détail l'essentiel de l'article sans avoir à le lire : le sujet, le contexte, le ou les points clés, l'angle pris, et les données, exemples ou conclusions marquantes qu'il contient. Reste factuel et précis, pas de généralités vagues. Ne fais aucun commentaire, ne donne que le résumé, sans titre ni introduction.`;
 
 // --- Option 1 : Claude (Anthropic), payant à l'usage ---
 async function summarizeWithClaude(title, text) {
@@ -21,7 +21,7 @@ async function summarizeWithClaude(title, text) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
-      max_tokens: 300,
+      max_tokens: 500,
       messages: [{ role: 'user', content: SUMMARY_INSTRUCTIONS(title, text) }]
     })
   });
@@ -51,7 +51,8 @@ async function summarizeWithGemini(title, text) {
       'x-goog-api-key': process.env.GEMINI_API_KEY
     },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: SUMMARY_INSTRUCTIONS(title, text) }] }]
+      contents: [{ parts: [{ text: SUMMARY_INSTRUCTIONS(title, text) }] }],
+      generationConfig: { maxOutputTokens: 500 }
     })
   });
 
@@ -92,12 +93,12 @@ function scoredSentences(text) {
   });
 
   scored.sort((a, b) => b.score - a.score);
-  const top = scored.slice(0, 4).sort((a, b) => a.i - b.i);
+  const top = scored.slice(0, 7).sort((a, b) => a.i - b.i);
   return top.map((t) => t.s);
 }
 
 function naiveSummary(text) {
-  return scoredSentences(text).join(' ').slice(0, 800);
+  return scoredSentences(text).join(' ').slice(0, 1300);
 }
 
 async function summarize(title, text) {
