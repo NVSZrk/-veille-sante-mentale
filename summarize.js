@@ -8,7 +8,7 @@ const SUMMARY_INSTRUCTIONS = (title, text) => `Tu résumes un article de presse 
 Titre : ${title}
 Contenu : ${text.slice(0, 12000)}
 
-Rédige un résumé synthétique de 6 à 8 lignes (environ 130 à 180 mots), en français, qui permet de comprendre en détail l'essentiel de l'article sans avoir à le lire : le sujet, le contexte, le ou les points clés, l'angle pris, et les données, exemples ou conclusions marquantes qu'il contient. Reste factuel et précis, pas de généralités vagues. Ne fais aucun commentaire, ne donne que le résumé, sans titre ni introduction.`;
+Rédige un résumé synthétique de 6 à 8 lignes (environ 130 à 180 mots), TOUJOURS EN FRANÇAIS même si le titre ou le contenu ci-dessus est dans une autre langue (traduis-le dans ce cas), qui permet de comprendre en détail l'essentiel de l'article sans avoir à le lire : le sujet, le contexte, le ou les points clés, l'angle pris, et les données, exemples ou conclusions marquantes qu'il contient. Reste factuel et précis, pas de généralités vagues. Ne fais aucun commentaire, ne donne que le résumé en français, sans titre ni introduction.`;
 
 // --- Option 1 : Claude (Anthropic), payant à l'usage ---
 async function summarizeWithClaude(title, text) {
@@ -41,7 +41,7 @@ async function summarizeWithClaude(title, text) {
 // modèle recommandé pour le niveau gratuit sur https://aistudio.google.com
 // et changez la variable d'environnement GEMINI_MODEL en conséquence.
 async function summarizeWithGemini(title, text) {
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const res = await fetch(url, {
