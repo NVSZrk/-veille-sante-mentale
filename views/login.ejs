@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Connexion — Veille Santé mentale au travail</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-box">
+      <h1>Veille — Santé mentale au travail</h1>
+      <div class="tagline">Interviews, presse et articles, résumés automatiquement</div>
+      <% if (error) { %>
+        <div class="error-msg"><%= error %></div>
+      <% } %>
+      <form method="POST" action="/login">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autofocus>
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit" class="btn btn-primary">Se connecter</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

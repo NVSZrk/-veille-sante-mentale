@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Veille — Santé mentale au travail</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1>Veille — Santé mentale au travail</h1>
+      <div class="sub">Connecté : <%= email %></div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-ghost" onclick="lancerIngestion(this)">Actualiser maintenant</button>
+      <form method="POST" action="/logout">
+        <button type="submit" class="btn btn-ghost">Déconnexion</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="container">
+    <form class="filters" method="GET" action="/">
+      <input type="text" name="q" placeholder="Rechercher un mot..." value="<%= filters.q || '' %>">
+
+      <select name="keyword" onchange="this.form.submit()">
+        <option value="">Tous les mots-clés</option>
+        <% keywords.forEach(k => { %>
+          <option value="<%= k.keyword %>" <%= filters.keyword === k.keyword ? 'selected' : '' %>><%= k.keyword %></option>
+        <% }) %>
+      </select>
+
+      <select name="category" onchange="this.form.submit()">
+        <option value="">Toutes les catégories</option>
+        <% categories.forEach(c => { %>
+          <option value="<%= c.category %>" <%= filters.category === c.category ? 'selected' : '' %>><%= c.category %></option>
+        <% }) %>
+      </select>
+
+      <button type="submit" class="btn btn-primary">Filtrer</button>
+    </form>
+
+    <% if (articles.length === 0) { %>
+      <div class="empty-state">
+        <p>Aucun article pour le moment.</p>
+        <p>Configurez vos flux Google Alerts dans <code>config/feeds.json</code>, puis cliquez sur « Actualiser maintenant ».</p>
+      </div>
+    <% } else { %>
+      <% articles.forEach(a => { %>
+        <div class="card">
+          <div class="meta">
+            <span class="badge"><%= a.keyword %></span>
+            <span class="badge terracotta"><%= a.category %></span>
+            <span><%= a.source || 'Source inconnue' %></span>
+            <span><%= a.published_at ? new Date(a.published_at).toLocaleDateString('fr-FR') : '' %></span>
+          </div>
+          <h2><a href="<%= a.url %>" target="_blank" rel="noopener"><%= a.title %></a></h2>
+          <p class="summary"><%= a.summary || 'Résumé indisponible.' %></p>
+          <a class="source-link" href="<%= a.url %>" target="_blank" rel="noopener">Lire l'article original →</a>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+
+  <script>
+    async function lancerIngestion(btn) {
+      btn.disabled = true;
+      btn.textContent = 'Récupération en cours...';
+      try {
+        const res = await fetch('/api/ingest', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          location.reload();
+        } else {
+          alert("Erreur pendant l'ingestion : " + data.error);
+        }
+      } catch (e) {
+        alert("Erreur réseau pendant l'ingestion.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Actualiser maintenant';
+      }
+    }
+  </script>
+</body>
+</html>
