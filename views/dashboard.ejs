@@ -14,6 +14,7 @@
     </div>
     <div style="display:flex; gap:10px;">
       <button class="btn btn-ghost" onclick="lancerIngestion(this)">Actualiser maintenant</button>
+      <button class="btn btn-ghost" onclick="lancerResume(this)">Régénérer les résumés</button>
       <a href="/compte" class="btn btn-ghost" style="text-decoration:none;">Mon compte</a>
       <form method="POST" action="/logout">
         <button type="submit" class="btn btn-ghost">Déconnexion</button>
@@ -100,6 +101,25 @@
       } finally {
         btn.disabled = false;
         btn.textContent = 'Actualiser maintenant';
+      }
+    }
+
+    async function lancerResume(btn) {
+      btn.disabled = true;
+      btn.textContent = 'Régénération en cours...';
+      try {
+        const res = await fetch('/api/resummarize', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          location.reload();
+        } else {
+          alert('Erreur pendant la régénération : ' + data.error);
+        }
+      } catch (e) {
+        alert('Erreur réseau pendant la régénération.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Régénérer les résumés';
       }
     }
 
