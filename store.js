@@ -81,11 +81,26 @@ async function updateNotes(id, notes) {
   return result.rowCount > 0;
 }
 
+// Renvoie tous les articles ayant du texte source stocké, pour régénérer leur résumé.
+async function getAllForResummarize() {
+  const result = await pool.query(
+    "SELECT id, title, raw_excerpt FROM articles WHERE raw_excerpt IS NOT NULL AND raw_excerpt != ''"
+  );
+  return result.rows;
+}
+
+// Remplace le résumé stocké d'un article existant (sans toucher au reste).
+async function updateSummary(id, summary) {
+  await pool.query('UPDATE articles SET summary = $1 WHERE id = $2', [summary, id]);
+}
+
 module.exports = {
   insertArticleIfNew,
   queryArticles,
   getDistinctKeywords,
   getDistinctCategories,
   toggleSaved,
-  updateNotes
+  updateNotes,
+  getAllForResummarize,
+  updateSummary
 };
