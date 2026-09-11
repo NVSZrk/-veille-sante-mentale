@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mon compte — Veille Santé mentale au travail</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1>Veille — Santé mentale au travail</h1>
+      <div class="sub">Connecté : <%= email %></div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="/" class="btn btn-ghost" style="text-decoration:none;">← Retour au tableau de bord</a>
+      <form method="POST" action="/logout">
+        <button type="submit" class="btn btn-ghost">Déconnexion</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="container" style="max-width: 460px;">
+    <div class="card">
+      <h2 style="margin-bottom: 16px;">Changer mon mot de passe</h2>
+
+      <% if (error) { %>
+        <div class="error-msg"><%= error %></div>
+      <% } %>
+      <% if (success) { %>
+        <div class="success-msg"><%= success %></div>
+      <% } %>
+
+      <form method="POST" action="/compte/mot-de-passe">
+        <label for="current_password">Mot de passe actuel</label>
+        <input type="password" id="current_password" name="current_password" required>
+
+        <label for="new_password">Nouveau mot de passe</label>
+        <input type="password" id="new_password" name="new_password" minlength="6" required>
+
+        <label for="confirm_password">Confirmer le nouveau mot de passe</label>
+        <input type="password" id="confirm_password" name="confirm_password" minlength="6" required>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:6px;">Mettre à jour</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
