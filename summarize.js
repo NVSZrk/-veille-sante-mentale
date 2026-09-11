@@ -11,7 +11,7 @@ async function summarizeWithClaude(title, text) {
 Titre : ${title}
 Contenu : ${text.slice(0, 12000)}
 
-Rédige un résumé de 3 à 4 phrases maximum, factuel, en français, qui permet de comprendre l'essentiel de l'article sans avoir à le lire. Ne fais aucun commentaire, ne donne que le résumé.`;
+Rédige un résumé synthétique de 3 à 5 lignes maximum (environ 60 à 90 mots), en français, qui permet de comprendre l'essentiel de l'article sans avoir à le lire : le sujet, le point clé ou l'angle pris, et une donnée ou conclusion marquante si elle existe. Reste factuel et concis, pas de généralités vagues. Ne fais aucun commentaire, ne donne que le résumé, sans titre ni introduction.`;
 
   const res = await fetch(API_URL, {
     method: 'POST',
@@ -38,8 +38,8 @@ Rédige un résumé de 3 à 4 phrases maximum, factuel, en français, qui permet
 
 function naiveSummary(text) {
   const clean = text.replace(/\s+/g, ' ').trim();
-  const sentences = clean.split(/(?<=[.!?])\s+/).slice(0, 3);
-  return sentences.join(' ').slice(0, 500);
+  const sentences = clean.split(/(?<=[.!?])\s+/).slice(0, 4);
+  return sentences.join(' ').slice(0, 600);
 }
 
 async function summarize(title, text) {
