@@ -114,13 +114,12 @@ app.post('/api/ingest', requireAuth, async (req, res) => {
 });
 
 // --- Régénérer les résumés de tous les articles déjà en base ---
-app.post('/api/resummarize', requireAuth, async (req, res) => {
-  try {
-    const count = await resummarizeAll();
-    res.json({ ok: true, count });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
+// Lancé en arrière-plan : on ne fait pas attendre la requête HTTP jusqu'à la
+// fin (ça peut prendre plusieurs minutes s'il y a beaucoup d'articles), on
+// confirme juste que c'est parti.
+app.post('/api/resummarize', requireAuth, (req, res) => {
+  resummarizeAll().catch((err) => console.error('Erreur régénération résumés :', err.message));
+  res.json({ ok: true, started: true });
 });
 
 // --- Mon compte : changement de mot de passe ---
