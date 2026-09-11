@@ -41,6 +41,8 @@ function insertArticleIfNew(article) {
     published_at: article.published_at || null,
     summary: article.summary || null,
     raw_excerpt: article.raw_excerpt || '',
+    saved: false,
+    notes: '',
     created_at: new Date().toISOString()
   });
 
@@ -49,22 +51,44 @@ function insertArticleIfNew(article) {
 }
 
 // Filtre + trie (plus récent en premier) + limite à 100 résultats
-function queryArticles({ keyword, category, q } = {}) {
+function queryArticles({ keyword, category, q, savedOnly } = {}) {
   let articles = loadArticles();
 
   if (keyword) articles = articles.filter((a) => a.keyword === keyword);
   if (category) articles = articles.filter((a) => a.category === category);
+  if (savedOnly) articles = articles.filter((a) => a.saved);
   if (q) {
     const needle = q.toLowerCase();
     articles = articles.filter(
       (a) =>
         (a.title || '').toLowerCase().includes(needle) ||
-        (a.summary || '').toLowerCase().includes(needle)
+        (a.summary || '').toLowerCase().includes(needle) ||
+        (a.notes || '').toLowerCase().includes(needle)
     );
   }
 
   articles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   return articles.slice(0, 100);
+}
+
+// Bascule l'état "enregistré" d'un article. Renvoie le nouvel état, ou null si introuvable.
+function toggleSaved(id) {
+  const articles = loadArticles();
+  const article = articles.find((a) => a.id === Number(id));
+  if (!article) return null;
+  article.saved = !article.saved;
+  saveArticles(articles);
+  return article.saved;
+}
+
+// Met à jour les notes personnelles d'un article. Renvoie true si trouvé.
+function updateNotes(id, notes) {
+  const articles = loadArticles();
+  const article = articles.find((a) => a.id === Number(id));
+  if (!article) return false;
+  article.notes = (notes || '').slice(0, 5000);
+  saveArticles(articles);
+  return true;
 }
 
 function getDistinctKeywords() {
@@ -81,5 +105,7 @@ module.exports = {
   insertArticleIfNew,
   queryArticles,
   getDistinctKeywords,
-  getDistinctCategories
+  getDistinctCategories,
+  toggleSaved,
+  updateNotes
 };
